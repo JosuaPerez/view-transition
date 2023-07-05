@@ -3,34 +3,99 @@ export interface Props {
 	title: string;
 }
 
-const { title } = Astro.props;
+const { title } = Astro.props
 ---
 
 <!DOCTYPE html>
 <html lang="en">
-	<head>
-		<meta charset="UTF-8" />
-		<meta name="description" content="Astro description">
-		<meta name="viewport" content="width=device-width" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<meta name="generator" content={Astro.generator} />
-		<title>{title}</title>
-	</head>
-	<body>
-		<slot />
-	</body>
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="description" content="Astro description">
+    <meta name="viewport" content="width=device-width"/>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
+    <title>{title}</title>
+    <meta name="view-transition" content="same-origin"/>
+</head>
+<body>
+<div id="content">
+    <slot/>
+</div>
+</body>
 </html>
 <style is:global>
-	:root {
-		--accent: 124, 58, 237;
-		--accent-gradient: linear-gradient(45deg, rgb(var(--accent)), #da62c4 30%, white 60%);
-	}
-	html {
-		font-family: system-ui, sans-serif;
-		background-color: #F6F6F6;
-	}
-	code {
-		font-family: Menlo, Monaco, Lucida Console, Liberation Mono, DejaVu Sans Mono,
-			Bitstream Vera Sans Mono, Courier New, monospace;
-	}
+    :root {
+        --accent: 124, 58, 237;
+        --accent-gradient: linear-gradient(45deg, rgb(var(--accent)), #da62c4 30%, white 60%);
+    }
+
+    html {
+        font-family: system-ui, sans-serif;
+        background-color: #F6F6F6;
+    }
+
+    code {
+        font-family: Menlo, Monaco, Lucida Console, Liberation Mono, DejaVu Sans Mono,
+        Bitstream Vera Sans Mono, Courier New, monospace;
+    }
+
+    @keyframes fade-in {
+        from {
+            opacity: 0;
+        }
+    }
+
+    @keyframes fade-out {
+        to {
+            opacity: 0;
+        }
+    }
+
+    @keyframes slide-from-right {
+        from {
+            transform: translateX(30px);
+        }
+    }
+
+    @keyframes slide-to-left {
+        to {
+            transform: translateX(-30px);
+        }
+    }
+
+    ::view-transition-old(root) {
+        animation: 300ms cubic-bezier(0.4, 0, 1, 1) both fade-out,
+        700ms cubic-bezier(0.4, 0, 0.2, 1) both slide-to-left;
+    }
+
+    ::view-transition-new(root) {
+        animation: 210ms cubic-bezier(0, 0, 0.2, 1) 300ms both fade-in,
+        700ms cubic-bezier(0.4, 0, 0.2, 1) both slide-from-right;
+    }
 </style>
+
+<script>
+	if (document.startViewTransition) {
+		window.navigation.addEventListener('navigate', (event) => {
+			const toUrl = new URL(event.destination.url)
+
+			// es una página externa? si es así, lo ignoramos
+			if (location.origin !== toUrl.origin) return
+
+			// si es una navegación en el mismo dominio (origen)
+			event.intercept({
+				async handler () {
+					const response = await fetch(toUrl.pathname)
+
+					const text = await response.text()
+
+					const [, data] = text.match(/<body>([\s\S]*)<\/body>/i)
+
+					document.startViewTransition(() => {
+						document.body.innerHTML = data
+						document.documentElement.scrollTop = 0
+					})
+				}
+			})
+		})
+	}
+</script>
